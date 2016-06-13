@@ -1,0 +1,75 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        applicationId "com.udacity.gradle.builditbigger"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+    }
+
+    dexOptions {
+        javaMaxHeapSize "4g"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    productFlavors{
+        free {
+            applicationId "com.udacity.gradle.builditbigger.free"
+        }
+        paid {
+            applicationId "com.udacity.gradle.builditbigger.paid"
+        }
+    }
+
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:23.3.0'
+    freeCompile 'com.google.android.gms:play-services:8.4.0'
+    compile project(':jokeactivity')
+    compile project(path: ':backend', configuration: 'android-endpoints')
+    androidTestCompile 'junit:junit:4.12'
+}
+
+
+
+
+afterEvaluate { project ->
+    println ">>>>> Project Ready -> setup full test ... "
+
+    connectedAndroidTest.getDependsOn().each { dep ->
+        if(dep instanceof String) {
+            try {
+                dep = tasks.getByPath(dep)
+            } catch(e) {
+                return
+            }
+        }
+
+        if(dep instanceof DefaultTask) {
+            println "${dep} -> Setup Callback"
+            dep.dependsOn(":backend:setupAppEngine", ":backend:appengineRun")
+            dep.finalizedBy(":backend:appengineStop")
+        }
+    }
+
+
+    connectedAndroidTest.dependsOn ":backend:setupAppEngine", ":backend:appengineRun"
+    connectedAndroidTest.finalizedBy ":backend:appengineStop"
+    connectedAndroidTest.description = "Test on android devices with the local app server"
+
+}
+
